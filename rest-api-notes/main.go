@@ -135,6 +135,20 @@ func idFromPath(r *http.Request) (int, error) {
 // --- handlers ---
 
 func (s *Store) listNotes(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query().Get("q")
+	if query != "" {
+		query = strings.ToLower(query)
+		notes := s.GetAll()
+		filtered := make([]Note, 0)
+		for _, note := range notes {
+			if strings.Contains(strings.ToLower(note.Title), query) ||
+				strings.Contains(strings.ToLower(note.Body), query) {
+				filtered = append(filtered, note)
+			}
+		}
+		writeJSON(w, http.StatusOK, filtered)
+		return
+	}
 	writeJSON(w, http.StatusOK, s.GetAll())
 }
 
@@ -212,7 +226,7 @@ func main() {
 	store := NewStore()
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("GET /notes", store.listNotes)
+	mux.HandleFunc("GET /notes?q={q}", store.listNotes)
 	mux.HandleFunc("POST /notes", store.createNote)
 	mux.HandleFunc("GET /notes/{id}", store.getNote)
 	mux.HandleFunc("PUT /notes/{id}", store.updateNote)
